@@ -44,6 +44,9 @@ function authorized() {
 		buttonAuth.style.display = '';
 		userName.style.display = '';
 		buttonOut.style.display = '';
+		containerPromo.classList.remove('hide');
+		restaurants.classList.remove('hide');
+		menu.classList.add('hide');
 		buttonOut.removeEventListener('click', logOut);
 		localStorage.clear();
 		checAuth();
