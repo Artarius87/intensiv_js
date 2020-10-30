@@ -19,9 +19,17 @@ const menu = document.querySelector('.menu');
 const logo = document.querySelector('.logo');
 const cardsMenu = document.querySelector('.cards-menu');
 const menuTitle = document.querySelector('.menu-title');
+const modalBody = document.querySelector('.modal-body');
+const modalPriceTag = document.querySelector('.modal-pricetag');
+const clearCart = document.querySelector('.clear-cart');
+
+
+
+const cartStorage = JSON.parse(localStorage.getItem('cart'));
+const cart = (cartStorage === null) ? [] : cartStorage;
 
 let login = localStorage.getItem('jsIntensiv');
-
+console.log(cart);
 
 const getData = async function (url) {
 
@@ -51,6 +59,7 @@ function authorized() {
 		buttonAuth.style.display = '';
 		userName.style.display = '';
 		buttonOut.style.display = '';
+		cartButton.style.display = '';
 		containerPromo.classList.remove('hide');
 		restaurants.classList.remove('hide');
 		menu.classList.add('hide');
@@ -64,9 +73,8 @@ function authorized() {
 
 	buttonAuth.style.display = 'none';
 	userName.style.display = 'inline';
-	buttonOut.style.display = 'block';
-
-
+	buttonOut.style.display = 'flex';
+	cartButton.style.display = 'flex';
 
 	buttonOut.addEventListener('click', logOut)
 };
@@ -134,7 +142,7 @@ function createCardRestaurant({ name, image, kitchen, price,
 
 };
 
-function createCardGood({ description, image, name, price }) {
+function createCardGood({ description, image, name, price, id }) {
 	const card = document.createElement('div');
 	card.className = 'card';
 
@@ -150,19 +158,17 @@ function createCardGood({ description, image, name, price }) {
 				</div>
 			</div>
 			<div class="card-buttons">
-				<button class="button button-primary button-add-cart">
+				<button class="button button-primary button-add-cart" id="${id}">
 					<span class="button-card-text">В корзину</span>
 					<span class="button-cart-svg"></span>
 				</button>
-				<strong class="card-price-bold">${price} ₽</strong>
+				<strong class="card-price-bold card-price">${price} ₽</strong>
 			</div>
 		</div>						
 	`);
 
 	cardsMenu.insertAdjacentElement('beforeend', card)
 };
-
-
 
 function openGoods(event) {
 
@@ -204,7 +210,85 @@ function openGoods(event) {
 
 };
 
+function addToCart(event) {
+	const target = event.target;
+	const buttonAddTocart = target.closest('.button-add-cart');
 
+	if (buttonAddTocart) {
+		const card = target.closest('.card');
+		const title = card.querySelector('.card-title-reg').textContent;
+		const cost = card.querySelector('.card-price').textContent;
+		const id = buttonAddTocart.id;
+		const food = cart.find(function (item) {
+			return item.id === id;
+		});
+		if (food) {
+			food.count += 1;
+		} else {
+			cart.push({
+				id,
+				title,
+				cost,
+				count: 1
+			});
+		};
+	};
+
+};
+
+function renderCart() {
+	modalBody.textContent = '';
+
+
+	cart.forEach(function ({ title, cost, count, id }) {
+		const foodRow = `
+		<div class="food-row">
+			<span class="food-name">${title}</span>
+			<strong class="food-price">${cost}</strong>
+			<div class="food-counter">
+				<button class="counter-button counter-minus" data-id=${id}>-</button>
+				<span class="counter">${count}</span>
+				<button class="counter-button counter-plus" data-id=${id}>+</button>
+			</div>
+		</div>
+	`;
+		modalBody.insertAdjacentHTML('afterbegin', foodRow);
+	});
+
+	const totalPtice = cart.reduce(function (result, item) {
+		return result + (parseFloat(item.cost) * item.count);
+	}, 0);
+	modalPriceTag.textContent = totalPtice + ' ₽';
+
+	localStorage.setItem('cart', JSON.stringify(cart));
+};
+
+function changeCount(event) {
+	const target = event.target;
+	if (target.classList.contains('counter-minus')) {
+		const food = cart.find(function (item) {
+			return item.id === target.dataset.id;
+		});
+		food.count--;
+		if (food.count === 0) {
+			cart.splice(cart.indexOf(food), 1);
+		}
+		renderCart();
+	};
+
+	if (target.classList.contains('counter-plus')) {
+		const food = cart.find(function (item) {
+			return item.id === target.dataset.id;
+		});
+		food.count++;
+		renderCart();
+	}
+};
+function clear() {
+	cart.length = 0;
+	renderCart();
+
+}
 
 function init() {
 	getData('./db/partners.json').then(function (data) {
@@ -213,8 +297,13 @@ function init() {
 
 	buttonAuth.addEventListener('click', toggleModalAuth);
 	closeAuth.addEventListener('click', toggleModalAuth);
-
-	cartButton.addEventListener("click", toggleModal);
+	modalBody.addEventListener('click', changeCount);
+	cartButton.addEventListener('click', function () {
+		renderCart();
+		toggleModal();
+	});
+	cardsMenu.addEventListener('click', addToCart);
+	clearCart.addEventListener('click', clear);
 
 	close.addEventListener("click", toggleModal);
 
